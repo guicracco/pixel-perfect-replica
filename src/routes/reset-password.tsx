@@ -27,11 +27,11 @@ function ResetPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 6) return toast.error("A senha precisa de pelo menos 6 caracteres");
+    if (password.length < 6) { toast.error("A senha precisa de pelo menos 6 caracteres"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Senha atualizada");
     navigate({ to: "/dashboard" });
   }
