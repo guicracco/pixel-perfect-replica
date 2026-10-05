@@ -1,24 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "GL Sites — Gestão de clientes e projetos" },
+      { name: "description", content: "Sistema interno da GL Sites para organizar clientes, projetos, tarefas e pagamentos." },
+      { property: "og:title", content: "GL Sites — Gestão de clientes e projetos" },
+      { property: "og:description", content: "Sistema interno da GL Sites para organizar clientes, projetos, tarefas e pagamentos." },
+    ],
+  }),
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getUser();
+    throw redirect({ to: data.user ? "/dashboard" : "/auth" });
+  },
+  component: () => null,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
