@@ -1,12 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { z } from "zod";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/app/Logo";
 
 export const Route = createFileRoute("/auth")({
@@ -17,67 +14,36 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesso da equipe GL Sites ao sistema de gestão." },
       { property: "og:title", content: "Entrar — GL Sites" },
       { property: "og:description", content: "Acesso da equipe GL Sites ao sistema de gestão." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
 });
 
-const schema = z.object({
-  email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(6, "Mínimo de 6 caracteres").max(72),
-});
-
-type Mode = "login" | "forgot" | "first";
-
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("login");
-  const [hasUsers, setHasUsers] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => { if (data.user) navigate({ to: "/dashboard" }); });
-    supabase.rpc("has_any_user").then(({ data }) => setHasUsers(data !== false));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) navigate({ to: "/dashboard" });
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function signIn() {
     setError(null);
-    if (mode === "forgot") {
-      const r = z.string().trim().email().safeParse(email);
-      if (!r.success) return setError("Informe um e-mail válido");
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(r.data, { redirectTo: `${window.location.origin}/reset-password` });
-      setLoading(false);
-      if (error) return setError(error.message);
-      toast.success("Enviamos um link de redefinição para seu e-mail.");
-      setMode("login");
-      return;
-    }
-    const parsed = schema.safeParse({ email, password });
-    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Dados inválidos");
     setLoading(true);
-    if (mode === "first") {
-      const { data, error } = await supabase.auth.signUp({
-        email: parsed.data.email,
-        password: parsed.data.password,
-        options: { emailRedirectTo: window.location.origin, data: { full_name: name.trim() } },
-      });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) {
       setLoading(false);
-      if (error) return setError(error.message);
-      if (!data.session) {
-        toast.success("Conta criada! Confirme seu e-mail para entrar.");
-        setMode("login");
-      } else navigate({ to: "/dashboard" });
+      setError("Não foi possível entrar com o Google. Tente novamente.");
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
-    setLoading(false);
-    if (error) return setError(error.message === "Invalid login credentials" ? "E-mail ou senha incorretos" : error.message);
+    if (result.redirected) return;
     navigate({ to: "/dashboard" });
   }
 
@@ -97,56 +63,20 @@ function AuthPage() {
       </div>
 
       <div className="flex items-center justify-center px-6 py-12">
-        <form onSubmit={submit} className="w-full max-w-sm animate-rise" noValidate>
+        <div className="w-full max-w-sm animate-rise">
           <Logo className="mb-10 lg:hidden" />
-          <h2 className="text-2xl font-semibold text-foreground">
-            {mode === "login" ? "Entrar" : mode === "forgot" ? "Recuperar senha" : "Criar primeiro acesso"}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "login" ? "Use seu e-mail e senha da equipe." : mode === "forgot" ? "Enviaremos um link para redefinir sua senha." : "Esta conta será a administradora do sistema."}
-          </p>
-
+          <h2 className="text-2xl font-semibold text-foreground">Entrar</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Use sua conta Google da equipe.</p>
           <div className="mt-8 space-y-4">
-            {mode === "first" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            {mode !== "forgot" && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
-                  {mode === "login" && (
-                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => setMode("forgot")}>
-                      Esqueci minha senha
-                    </button>
-                  )}
-                </div>
-                <Input id="password" type="password" autoComplete={mode === "first" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
-            )}
             {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="size-4 animate-spin" />}
-              {mode === "login" ? "Entrar" : mode === "forgot" ? "Enviar link" : "Criar conta"}
+            <Button type="button" className="w-full" onClick={signIn} disabled={loading}>
+              {loading ? <Loader2 className="size-4 animate-spin" /> : (
+                <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.98h5.35c-.23 1.4-1.66 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.96S8.78 6.26 12 6.26c1.83 0 3.06.78 3.76 1.45l2.56-2.47C16.7 3.72 14.56 2.8 12 2.8 6.92 2.8 2.8 6.92 2.8 12s4.12 9.2 9.2 9.2c5.31 0 8.83-3.73 8.83-8.99 0-.6-.07-1.06-.15-1.51z" /></svg>
+              )}
+              Entrar com Google
             </Button>
-            {mode !== "login" && (
-              <button type="button" className="w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMode("login")}>
-                Voltar para o login
-              </button>
-            )}
-            {mode === "login" && !hasUsers && (
-              <button type="button" className="w-full text-center text-sm text-primary hover:underline" onClick={() => setMode("first")}>
-                Primeira vez? Criar conta de administrador
-              </button>
-            )}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
