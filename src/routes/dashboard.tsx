@@ -5,7 +5,7 @@ import { Logo } from "@/components/app/Logo";
 import { useList, type Client, type Project, type Payment, type Task } from "@/lib/data";
 import { money } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — GL Sites" },
