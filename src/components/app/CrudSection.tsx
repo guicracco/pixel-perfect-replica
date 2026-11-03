@@ -6,7 +6,8 @@ import { ConfirmDelete, EmptyState, ListSkeleton, Panel } from "./ui";
 import { useList, useRemove, useSave, type TableName } from "@/lib/data";
 import { Inbox } from "lucide-react";
 
-type Rec = Record<string, unknown> & { id: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Rec = { id: string; [k: string]: any };
 
 export function CrudSection({
   table, label, fields, title, subtitle,
@@ -55,10 +56,10 @@ export function CrudSection({
         onOpenChange={setOpen}
         title={editing ? `Editar ${label.toLowerCase()}` : `Novo ${label.toLowerCase()}`}
         fields={fields}
-        initial={editing ?? undefined}
+        {...(editing ? { initial: editing } : {})}
         saving={save.isPending}
         onSubmit={async (values) => {
-          await save.mutateAsync({ id: editing?.id, values });
+          await save.mutateAsync(editing ? { id: editing.id, values } : { values });
           setOpen(false);
         }}
       />

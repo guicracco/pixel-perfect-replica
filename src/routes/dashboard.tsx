@@ -108,23 +108,23 @@ function Dashboard() {
         </TabsList>
         <TabsContent value="clients">
           <CrudSection table="clients" label="Cliente" fields={clientFields}
-            title={(r) => String(r.name)}
-            subtitle={(r) => [r.company, lbl(CLIENT_STATUS, r.status)].filter(Boolean).join(" · ")} />
+            title={(r) => String(r["name"])}
+            subtitle={(r) => [r["company"], lbl(CLIENT_STATUS, r["status"])].filter(Boolean).join(" · ")} />
         </TabsContent>
         <TabsContent value="projects">
           <CrudSection table="projects" label="Projeto" fields={projectFields}
-            title={(r) => String(r.name)}
-            subtitle={(r) => [(r as unknown as Project).clients?.name, lbl(PROJECT_STATUS, r.status), money(r.value as number)].filter(Boolean).join(" · ")} />
+            title={(r) => String(r["name"])}
+            subtitle={(r) => [(r as unknown as Project).clients?.name, lbl(PROJECT_STATUS, r["status"]), money(r["value"] as number)].filter(Boolean).join(" · ")} />
         </TabsContent>
         <TabsContent value="tasks">
           <CrudSection table="tasks" label="Tarefa" fields={taskFields}
-            title={(r) => String(r.title)}
-            subtitle={(r) => [lbl(TASK_STATUS, r.status), r.due_date ? `Prazo ${date(r.due_date as string)}` : ""].filter(Boolean).join(" · ")} />
+            title={(r) => String(r["title"])}
+            subtitle={(r) => [lbl(TASK_STATUS, r["status"]), r["due_date"] ? `Prazo ${date(r["due_date"] as string)}` : ""].filter(Boolean).join(" · ")} />
         </TabsContent>
         <TabsContent value="payments">
           <CrudSection table="payments" label="Pagamento" fields={paymentFields}
-            title={(r) => `${money(r.amount as number)} — ${(r as unknown as Payment).clients?.name ?? ""}`}
-            subtitle={(r) => [lbl(PAYMENT_STATUS, r.status), `Vence ${date(r.due_date as string)}`].join(" · ")} />
+            title={(r) => `${money(r["amount"] as number)} — ${(r as unknown as Payment).clients?.name ?? ""}`}
+            subtitle={(r) => [lbl(PAYMENT_STATUS, r["status"]), `Vence ${date(r["due_date"] as string)}`].join(" · ")} />
         </TabsContent>
       </Tabs>
     </div>
